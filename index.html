@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whipped Process — Jogo de Cartas</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brown-dark: #2c1a0e;
+    --brown-mid: #5c3317;
+    --amber: #c8820a;
+    --amber-light: #f0a832;
+    --cream: #f5e6c8;
+    --green: #2d6a3f;
+    --green-light: #d4edda;
+    --yellow-card: #fffacd;
+    --yellow-dark: #8a7a00;
+    --red-card: #ffd5d5;
+    --red-dark: #8a2020;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--brown-dark);
+    min-height: 100vh;
+    color: var(--cream);
+    background-image:
+      repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(200,130,10,0.03) 40px, rgba(200,130,10,0.03) 80px);
+  }
+
+  /* TELAS */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── TELA INICIAL ── */
+  #screen-start {
+    align-items: center; justify-content: center; text-align: center;
+    padding: 2rem;
+  }
+  .logo-ring {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: var(--brown-dark);
+    border: 4px solid var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--amber);
+    box-shadow: 0 0 0 8px rgba(200,130,10,0.15);
+  }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 3.2rem; color: var(--amber-light); letter-spacing: 2px; line-height: 1; }
+  .subtitle { font-size: 1rem; color: rgba(245,230,200,0.6); margin: 0.5rem 0 2.5rem; letter-spacing: 1px; text-transform: uppercase; }
+  .btn-start {
+    background: var(--amber); color: var(--brown-dark);
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 2px;
+    border: none; border-radius: 6px; padding: 0.9rem 3rem;
+    cursor: pointer; transition: transform 0.15s, background 0.15s;
+  }
+  .btn-start:hover { background: var(--amber-light); transform: scale(1.04); }
+
+  .legend-row {
+    display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; justify-content: center;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.78rem; color: rgba(245,230,200,0.7);
+  }
+  .dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .dot-green { background: #2d6a3f; }
+  .dot-yellow { background: #8a7a00; }
+  .dot-red { background: #8a2020; }
+
+  /* ── TELA DE JOGO ── */
+  #screen-game { padding: 0; }
+
+  .topbar {
+    background: var(--brown-mid);
+    padding: 0.75rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--amber);
+    flex-wrap: wrap; gap: 0.5rem;
+  }
+  .topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: var(--amber-light); letter-spacing: 1px; }
+  .progress-info { font-size: 0.8rem; color: var(--cream); opacity: 0.7; }
+
+  .score-board {
+    display: flex; gap: 1rem;
+  }
+  .score-player {
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 4px 14px;
+    min-width: 70px;
+  }
+  .score-player .name { font-size: 0.7rem; color: var(--amber-light); text-transform: uppercase; letter-spacing: 1px; }
+  .score-player .pts { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: white; }
+
+  .game-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .whose-turn {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px;
+    color: var(--amber); text-transform: uppercase;
+  }
+
+  /* CARTA */
+  .card-wrap {
+    perspective: 1000px;
+    width: 260px; height: 340px;
+  }
+  .card-inner {
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+    position: relative;
+  }
+  .card-inner.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0;
+    border-radius: 14px;
+    backface-visibility: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 1.2rem;
+    border: 3px solid var(--amber);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .card-back {
+    background: var(--brown-mid);
+    cursor: pointer;
+  }
+  .card-back-logo { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--amber); }
+  .card-back-sub { font-size: 0.75rem; color: rgba(245,230,200,0.4); letter-spacing: 2px; margin-top: 4px; }
+  .card-back:hover { border-color: var(--amber-light); }
+
+  .card-front {
+    background: #1e1208;
+    transform: rotateY(180deg);
+    text-align: center;
+    gap: 0.8rem;
+  }
+  .card-num {
+    position: absolute; top: 12px; left: 14px;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--amber);
+    background: rgba(0,0,0,0.4); border-radius: 6px; padding: 0 8px;
+    line-height: 1.4;
+  }
+  .card-icon { font-size: 2.8rem; }
+  .card-activity {
+    font-size: 0.95rem; font-weight: 600; color: var(--cream);
+    line-height: 1.4; text-align: center;
+  }
+  .card-desc {
+    font-size: 0.78rem; color: rgba(245,230,200,0.55);
+    line-height: 1.5; text-align: center;
+  }
+
+  /* BOTÕES DE CLASSIFICAÇÃO */
+  .classify-btns {
+    display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
+    width: 100%; max-width: 480px;
+  }
+  .btn-class {
+    flex: 1; min-width: 120px;
+    border: 2px solid transparent; border-radius: 10px;
+    padding: 0.75rem 0.5rem;
+    font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.15s;
+    line-height: 1.3;
+  }
+  .btn-av   { background: var(--green-light); color: var(--green); border-color: var(--green); }
+  .btn-nec  { background: var(--yellow-card); color: var(--yellow-dark); border-color: var(--yellow-dark); }
+  .btn-nao  { background: var(--red-card);    color: var(--red-dark);    border-color: var(--red-dark); }
+  .btn-class:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .btn-class:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+  .hint-flip { font-size: 0.78rem; color: rgba(245,230,200,0.4); }
+
+  /* ── TELA DE RESULTADO ── */
+  #screen-result {
+    align-items: center; justify-content: center;
+    padding: 2rem; text-align: center; gap: 1rem;
+  }
+  .result-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; color: var(--amber-light); letter-spacing: 2px; }
+  .winner-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: white; margin-top: -0.3rem; }
+  .final-scores {
+    display: flex; gap: 1.5rem; margin: 1rem 0;
+  }
+  .final-player {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(200,130,10,0.3);
+    border-radius: 12px; padding: 1rem 2rem; text-align: center;
+  }
+  .final-player.winner { border-color: var(--amber); background: rgba(200,130,10,0.1); }
+  .final-player .fn { font-size: 0.85rem; color: var(--amber-light); text-transform: uppercase; letter-spacing: 1px; }
+  .final-player .fp { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: white; }
+  .final-player .fl { font-size: 0.75rem; color: rgba(245,230,200,0.5); }
+
+  .summary-table {
+    width: 100%; max-width: 560px;
+    border-collapse: collapse; font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  .summary-table th {
+    background: var(--brown-mid); color: var(--amber-light);
+    padding: 6px 10px; text-align: left; font-weight: 600;
+  }
+  .summary-table td {
+    padding: 5px 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: var(--cream);
+  }
+  .summary-table tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+  .tag { border-radius: 4px; padding: 2px 7px; font-size: 0.72rem; font-weight: 600; }
+  .tag-av  { background: var(--green-light); color: var(--green); }
+  .tag-nec { background: var(--yellow-card); color: var(--yellow-dark); }
+  .tag-nao { background: var(--red-card); color: var(--red-dark); }
+  .tag-ok  { background: #d4edda; color: #155724; }
+  .tag-err { background: #ffd5d5; color: #8a2020; }
+
+  .btn-restart {
+    background: var(--amber); color: var(--brown-dark);
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 2px;
+    border: none; border-radius: 6px; padding: 0.8rem 2.5rem;
+    cursor: pointer; margin-top: 0.5rem; transition: background 0.15s;
+  }
+  .btn-restart:hover { background: var(--amber-light); }
+
+  /* feedback overlay */
+  .feedback-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .feedback-overlay.show { opacity: 1; pointer-events: all; }
+  .feedback-box {
+    border-radius: 16px; padding: 2rem 2.5rem; text-align: center;
+    border: 3px solid;
+    transform: scale(0.85);
+    transition: transform 0.2s;
+  }
+  .feedback-overlay.show .feedback-box { transform: scale(1); }
+  .feedback-box.correct { background: #1a3a22; border-color: #2d6a3f; }
+  .feedback-box.wrong   { background: #3a1a1a; border-color: #8a2020; }
+  .feedback-icon { font-size: 3rem; }
+  .feedback-msg  { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; margin: 0.3rem 0; letter-spacing: 1px; }
+  .feedback-answer { font-size: 0.85rem; color: rgba(245,230,200,0.7); }
+</style>
+</head>
+<body>
+
+<!-- TELA INICIAL -->
+<div id="screen-start" class="screen active">
+  <div class="logo-ring">WB</div>
+  <h1>Whipped<br>Process</h1>
+  <p class="subtitle">Jogo de Cartas — Fabricação de Cerveja</p>
+  <div class="legend-row">
+    <div class="legend-item"><div class="dot dot-green"></div>Agrega valor</div>
+    <div class="legend-item"><div class="dot dot-yellow"></div>Não agrega, mas necessário</div>
+    <div class="legend-item"><div class="dot dot-red"></div>Não agrega e não é necessário</div>
+  </div>
+  <br>
+  <button class="btn-start" onclick="startGame()">▶ INICIAR JOGO</button>
+</div>
+
+<!-- TELA DE JOGO -->
+<div id="screen-game" class="screen">
+  <div class="topbar">
+    <div class="topbar-title">Whipped Process</div>
+    <div class="progress-info">Carta <span id="card-count">1</span> de 30</div>
+    <div class="score-board">
+      <div class="score-player">
+        <div class="name">J1</div>
+        <div class="pts" id="score-p1">0</div>
+      </div>
+      <div class="score-player">
+        <div class="name">J2</div>
+        <div class="pts" id="score-p2">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="game-body">
+    <div class="whose-turn" id="whose-turn">Vez do Jogador 1</div>
+
+    <div class="card-wrap">
+      <div class="card-inner" id="card-inner">
+        <div class="card-face card-back" onclick="flipCard()">
+          <div class="card-back-logo">WB</div>
+          <div class="card-back-sub">CLIQUE PARA REVELAR</div>
+        </div>
+        <div class="card-face card-front">
+          <div class="card-num" id="card-num">1</div>
+          <div class="card-icon" id="card-icon">🌾</div>
+          <div class="card-activity" id="card-activity">—</div>
+          <div class="card-desc" id="card-desc">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-flip" id="hint-flip">Clique na carta para revelar a atividade</div>
+
+    <div class="classify-btns">
+      <button class="btn-class btn-av"  id="btn-av"  onclick="classify('av')"  disabled>✅ Agrega valor</button>
+      <button class="btn-class btn-nec" id="btn-nec" onclick="classify('nec')" disabled>⚠️ Necessário, não agrega</button>
+      <button class="btn-class btn-nao" id="btn-nao" onclick="classify('nao')" disabled>❌ Não agrega e não é necessário</button>
+    </div>
+  </div>
+</div>
+
+<!-- TELA RESULTADO -->
+<div id="screen-result" class="screen">
+  <div class="result-title">Fim de Jogo!</div>
+  <div class="winner-name" id="winner-text"></div>
+  <div class="final-scores">
+    <div class="final-player" id="fp1">
+      <div class="fn">Jogador 1</div>
+      <div class="fp" id="fp1-pts">0</div>
+      <div class="fl">acertos</div>
+    </div>
+    <div class="final-player" id="fp2">
+      <div class="fn">Jogador 2</div>
+      <div class="fp" id="fp2-pts">0</div>
+      <div class="fl">acertos</div>
+    </div>
+  </div>
+  <div style="overflow-x:auto; width:100%; max-width:560px;">
+    <table class="summary-table" id="summary-table">
+      <thead><tr><th>#</th><th>Atividade</th><th>Resposta certa</th><th>J1</th><th>J2</th></tr></thead>
+      <tbody id="summary-body"></tbody>
+    </table>
+  </div>
+  <button class="btn-restart" onclick="restartGame()">↺ JOGAR NOVAMENTE</button>
+</div>
+
+<!-- FEEDBACK OVERLAY -->
+<div class="feedback-overlay" id="feedback-overlay">
+  <div class="feedback-box" id="feedback-box">
+    <div class="feedback-icon" id="feedback-icon"></div>
+    <div class="feedback-msg"  id="feedback-msg"></div>
+    <div class="feedback-answer" id="feedback-answer"></div>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+  // ── AGREGA VALOR (10) ──
+  { id:1,  icon:'🌾', activity:'Moagem do malte',                desc:'Triturar o malte para liberar os açúcares fermentáveis.',         answer:'av'  },
+  { id:2,  icon:'🌡️', activity:'Mosturação (mashing)',           desc:'Misturar malte moído com água quente para converter amido em açúcar.', answer:'av' },
+  { id:3,  icon:'🍺', activity:'Adição de lúpulo',               desc:'Adicionar lúpulo ao mosto para amargor e aroma característico.',   answer:'av'  },
+  { id:4,  icon:'🧫', activity:'Fermentação primária',           desc:'Leveduras convertem açúcares em álcool e CO₂.',                   answer:'av'  },
+  { id:5,  icon:'❄️', activity:'Maturação/lagering',             desc:'Descanso em baixa temperatura para refinar sabor e clareza.',     answer:'av'  },
+  { id:6,  icon:'🔬', activity:'Filtração da cerveja',           desc:'Remoção de leveduras e partículas para clareza final do produto.', answer:'av'  },
+  { id:7,  icon:'🍶', activity:'Carbonatação',                   desc:'Injeção de CO₂ para criar a gaseificação ideal da cerveja.',      answer:'av'  },
+  { id:8,  icon:'🏺', activity:'Envase (engarrafamento/lata)',   desc:'Transferência do produto finalizado para embalagem comercial.',   answer:'av'  },
+  { id:9,  icon:'🏷️', activity:'Rotulagem e embalagem',          desc:'Aplicação de rótulo e preparo para distribuição e venda.',        answer:'av'  },
+  { id:10, icon:'🧪', activity:'Controle de qualidade final',    desc:'Análise sensorial e química antes da liberação do lote.',         answer:'av'  },
+
+  // ── NÃO AGREGA MAS É NECESSÁRIO (10) ──
+  { id:11, icon:'🚚', activity:'Recebimento de matéria-prima',   desc:'Descarga e conferência do malte, lúpulo e levedura entregues.',   answer:'nec' },
+  { id:12, icon:'📦', activity:'Armazenagem de insumos',         desc:'Estocagem do malte e lúpulo antes do uso na produção.',           answer:'nec' },
+  { id:13, icon:'🪣', activity:'Limpeza e sanitização dos tanques', desc:'Higienização obrigatória dos equipamentos entre bateladas.',    answer:'nec' },
+  { id:14, icon:'📋', activity:'Registro de receita e batelada', desc:'Documentação dos parâmetros de cada lote para rastreabilidade.',  answer:'nec' },
+  { id:15, icon:'💧', activity:'Tratamento de água',             desc:'Ajuste de pH e minerais da água usada no processo.',              answer:'nec' },
+  { id:16, icon:'🔧', activity:'Manutenção preventiva dos equipamentos', desc:'Verificação periódica de bombas, válvulas e trocadores.', answer:'nec' },
+  { id:17, icon:'🧾', activity:'Emissão de nota fiscal',         desc:'Processo fiscal obrigatório para saída do produto da fábrica.',   answer:'nec' },
+  { id:18, icon:'🧊', activity:'Refrigeração do mosto pré-fermentação', desc:'Resfriar o mosto até temperatura ideal para inocular levedura.', answer:'nec' },
+  { id:19, icon:'🔍', activity:'Inspeção de embalagens',         desc:'Verificar integridade de garrafas e latas antes do envase.',     answer:'nec' },
+  { id:20, icon:'📊', activity:'Análise microbiológica de água', desc:'Teste obrigatório de potabilidade da água usada na produção.',   answer:'nec' },
+
+  // ── NÃO AGREGA E NÃO É NECESSÁRIO (10) ──
+  { id:21, icon:'🚶', activity:'Transporte interno entre setores à mão', desc:'Carregar baldes manualmente entre áreas devido à falta de tubulação.', answer:'nao' },
+  { id:22, icon:'📞', activity:'Retrabalho por falha de comunicação', desc:'Refazer uma etapa por falta de informação entre turnos.',     answer:'nao' },
+  { id:23, icon:'⏳', activity:'Espera de aprovação manual em cada etapa', desc:'Processo parado aguardando assinatura de supervisor.',    answer:'nao' },
+  { id:24, icon:'🖨️', activity:'Impressão de relatórios duplicados', desc:'Gerar o mesmo relatório em papel e digital sem necessidade.', answer:'nao' },
+  { id:25, icon:'📁', activity:'Redigitar dados já registrados no sistema', desc:'Duplicação de esforço: dado no sistema mas copiado em planilha.', answer:'nao' },
+  { id:26, icon:'🔄', activity:'Refiltragem por filtro defeituoso', desc:'Repetir filtragem por falha de equipamento não mantido.',      answer:'nao' },
+  { id:27, icon:'🗂️', activity:'Arquivamento de documentos obsoletos', desc:'Guardar papéis de processos já digitalizados e descontinuados.', answer:'nao' },
+  { id:28, icon:'💬', activity:'Reuniões sem pauta ou resultado definido', desc:'Reuniões de status que não geram nenhuma ação ou decisão.', answer:'nao' },
+  { id:29, icon:'🚰', activity:'Descarte de mosto por erro de temperatura', desc:'Perda de lote por falha de monitoramento evitável.',      answer:'nao' },
+  { id:30, icon:'📱', activity:'Consulta manual de estoque já informatizado', desc:'Ir ao depósito verificar estoque que já consta no sistema.', answer:'nao' },
+];
+
+const ANSWER_LABELS = {
+  av:  'Agrega valor',
+  nec: 'Não agrega, mas é necessário',
+  nao: 'Não agrega e não é necessário'
+};
+
+let shuffled = [], currentIdx = 0, currentPlayer = 1, flipped = false;
+let scores = [0, 0];
+let answers = [];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame() {
+  shuffled = shuffle(CARDS);
+  currentIdx = 0; currentPlayer = 1; flipped = false;
+  scores = [0, 0]; answers = [];
+  updateGameUI();
+  showScreen('screen-game');
+}
+
+function updateGameUI() {
+  const card = shuffled[currentIdx];
+  document.getElementById('card-count').textContent = currentIdx + 1;
+  document.getElementById('whose-turn').textContent = `Vez do Jogador ${currentPlayer}`;
+  document.getElementById('score-p1').textContent = scores[0];
+  document.getElementById('score-p2').textContent = scores[1];
+  document.getElementById('card-num').textContent = card.id;
+  document.getElementById('card-icon').textContent = card.icon;
+  document.getElementById('card-activity').textContent = card.activity;
+  document.getElementById('card-desc').textContent = card.desc;
+  document.getElementById('card-inner').classList.remove('flipped');
+  document.getElementById('hint-flip').style.display = '';
+  ['btn-av','btn-nec','btn-nao'].forEach(b => document.getElementById(b).disabled = true);
+  flipped = false;
+}
+
+function flipCard() {
+  if (flipped) return;
+  flipped = true;
+  document.getElementById('card-inner').classList.add('flipped');
+  document.getElementById('hint-flip').style.display = 'none';
+  ['btn-av','btn-nec','btn-nao'].forEach(b => document.getElementById(b).disabled = false);
+}
+
+function classify(choice) {
+  const card = shuffled[currentIdx];
+  const correct = choice === card.answer;
+  if (correct) scores[currentPlayer - 1]++;
+  answers.push({ card, playerChoice: choice, correct });
+
+  // feedback
+  const overlay = document.getElementById('feedback-overlay');
+  const box = document.getElementById('feedback-box');
+  document.getElementById('feedback-icon').textContent = correct ? '✅' : '❌';
+  document.getElementById('feedback-msg').textContent = correct ? 'ACERTOU!' : 'ERROU!';
+  document.getElementById('feedback-answer').textContent = correct
+    ? ANSWER_LABELS[card.answer]
+    : `Resposta correta: ${ANSWER_LABELS[card.answer]}`;
+  box.className = 'feedback-box ' + (correct ? 'correct' : 'wrong');
+  overlay.classList.add('show');
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    currentIdx++;
+    if (currentIdx >= shuffled.length) {
+      showResult();
+    } else {
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      updateGameUI();
+    }
+  }, 1400);
+}
+
+function showResult() {
+  document.getElementById('fp1-pts').textContent = scores[0];
+  document.getElementById('fp2-pts').textContent = scores[1];
+
+  const fp1 = document.getElementById('fp1');
+  const fp2 = document.getElementById('fp2');
+  fp1.classList.remove('winner'); fp2.classList.remove('winner');
+
+  let winnerText = '';
+  if (scores[0] > scores[1]) { fp1.classList.add('winner'); winnerText = '🏆 Jogador 1 venceu!'; }
+  else if (scores[1] > scores[0]) { fp2.classList.add('winner'); winnerText = '🏆 Jogador 2 venceu!'; }
+  else winnerText = '🤝 Empate!';
+  document.getElementById('winner-text').textContent = winnerText;
+
+  const tbody = document.getElementById('summary-body');
+  tbody.innerHTML = '';
+  answers.forEach(({ card, playerChoice, correct }, i) => {
+    const player = (i % 2 === 0) ? 'J1' : 'J2';
+    const tagClass = card.answer === 'av' ? 'tag-av' : card.answer === 'nec' ? 'tag-nec' : 'tag-nao';
+    tbody.innerHTML += `<tr>
+      <td>${card.id}</td>
+      <td>${card.activity}</td>
+      <td><span class="tag ${tagClass}">${ANSWER_LABELS[card.answer]}</span></td>
+      <td colspan="1" style="text-align:center">${player === 'J1' ? (correct ? '<span class="tag tag-ok">✓</span>' : '<span class="tag tag-err">✗</span>') : '—'}</td>
+      <td colspan="1" style="text-align:center">${player === 'J2' ? (correct ? '<span class="tag tag-ok">✓</span>' : '<span class="tag tag-err">✗</span>') : '—'}</td>
+    </tr>`;
+  });
+
+  showScreen('screen-result');
+}
+
+function restartGame() { startGame(); }
+</script>
+</body>
+</html>
